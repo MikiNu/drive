@@ -1,7 +1,7 @@
 import {SET_SAVE, SETTING} from '../actions/setting.js'
 
 const state = {
-  urlServer: localStorage.getItem('urlServer') || 'https://drive-api.irmag.ru/',
+  urlServer: localStorage.getItem('urlServer') || '',
   isSetting: false,
 }
 
