@@ -2,7 +2,7 @@ import {
   GET_WAYBILLS, GET_DRIVER, PATCH_WAYBILLS,
 } from '../actions/waybills.js'
 import Vue from 'vue'
-import {SET_RESPONSE_SERVER} from "../actions/response-server";
+import {SET_RESPONSE_SERVER} from '../actions/response-server'
 
 const state = {
   waybills: '',
@@ -18,12 +18,12 @@ const actions = {
   [GET_WAYBILLS]: ({
                      commit,
                      dispatch,
-                     rootGetters
+                     rootGetters,
                    }) => {
     return new Promise((resolve, reject) => {
       //запрос данных с сервера
-      Vue.http.get(rootGetters.urlServer+'waybills').then(response => {
-          //вызов мутации установления заявок
+      Vue.http.get(rootGetters.urlServer + 'waybills?offset=&limit=30').then(response => {
+        //вызов мутации установления заявок
         commit(GET_WAYBILLS, response.body)
         dispatch(SET_RESPONSE_SERVER, true)
         resolve(response.body)
@@ -43,11 +43,11 @@ const actions = {
   },
   //обновление позиции товара
   [PATCH_WAYBILLS]: ({
-                    dispatch,
-                    rootGetters
-                  }, data) => {
+                       dispatch,
+                       rootGetters,
+                     }, data) => {
     return new Promise((resolve, reject) => {
-      Vue.http.patch(rootGetters.urlServer+'waybills/'+ data.id, {...data.waybill}).then(response => {
+      Vue.http.patch(rootGetters.urlServer + 'waybills/' + data.id, {...data.waybill}).then(response => {
         dispatch(GET_WAYBILLS)
         dispatch(SET_RESPONSE_SERVER, true)
         resolve(response.body)

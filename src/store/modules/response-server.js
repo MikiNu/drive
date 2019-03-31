@@ -1,20 +1,17 @@
-import {
-  SET_RESPONSE_SERVER,
-} from '../actions/response-server.js'
-
+import {SET_RESPONSE_SERVER} from '../actions/response-server.js'
 
 const state = {
   responseServer: true,
 }
 
 const getters = {
-  responseServer: state => state.responseServer
+  responseServer: state => state.responseServer,
 }
 
 const actions = {
   [SET_RESPONSE_SERVER]: ({
-                 commit,
-               }, data) => {
+                            commit,
+                          }, data) => {
     return new Promise((resolve) => {
       // вызываем мутацию изменения значения в хранилище
       commit(SET_RESPONSE_SERVER, data)

@@ -30,7 +30,7 @@
     },
     computed: {
       //слушаем массив путевых листов в хрнилище и адрес сервера в хранилище
-      ...mapGetters(['waybills', 'urlServer', 'driver', 'authStatus','isAuthenticated']),
+      ...mapGetters(['waybills', 'urlServer', 'driver', 'authStatus', 'isAuthenticated']),
       //процесс загрузки
       loading: function () {
         return this.authStatus === 'loading' && !this.isAuthenticated
@@ -40,11 +40,11 @@
         return this.driver.replace(/(.+) (.).+ (.).+/, '$1 $2. $3.')
       },
     },
-    beforeUpdate:function () {
+    beforeUpdate: function () {
       this.$router.push('/login')
     },
-   updated: function () {
-      if(!this.isAuthenticated && this.authStatus !== 'loading'){
+    updated: function () {
+      if (!this.isAuthenticated && this.authStatus !== 'loading') {
         this.$router.push('/login')
       }
     },

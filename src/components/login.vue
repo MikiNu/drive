@@ -63,9 +63,9 @@
     name: 'Login',
     data () {
       return {
-        username: 'courier_1',
-        password: '123qweasd',
-        notLogin: false
+        username: '',
+        password: '',
+        notLogin: false,
       }
     },
     computed: {
@@ -81,7 +81,7 @@
       //ф-ия авторизации
       login: function () {
         //если адрес сервера существует
-        if (this.urlServer !== "") {
+        if (this.urlServer !== '') {
           //определяем данные для отправки
           const {username, password} = this
           //вызов action из хранилища на запрос авторизации
@@ -89,8 +89,8 @@
             this.notLogin = false
             //если успех - переходим на главную страницу
             this.$router.push('/')
-          },response =>{
-            if(response.status === 403) {
+          }, response => {
+            if (response.status === 403) {
               this.notLogin = true
             }
           })

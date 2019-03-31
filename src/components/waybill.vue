@@ -59,7 +59,7 @@
       },
       type: {
         type: String,
-        default:"",
+        default: '',
       },
     },
   }
@@ -68,9 +68,10 @@
 
 <style scoped>
   .waybill a, .waybill a:focus, .waybill a:hover {
-      text-decoration: none;
-    }
-  .menu-item{
+    text-decoration: none;
+  }
+
+  .menu-item {
     font-size: 1em;
   }
 </style>

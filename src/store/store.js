@@ -7,6 +7,7 @@ import orders from './modules/orders.js'
 import elements from './modules/elements.js'
 import mixedPayments from './modules/mixed-payments.js'
 import responseServer from './modules/response-server.js'
+// import createPersistedState from 'vuex-persistedstate'
 
 Vue.use(Vuex)
 
@@ -21,6 +22,7 @@ export default new Vuex.Store({
     orders,
     elements,
     mixedPayments,
-    responseServer
+    responseServer,
   },
+  // plugins: [createPersistedState()],
 })

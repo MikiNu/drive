@@ -24,9 +24,23 @@
           cols="7"
           class="text-right text-dark pt-2 pb-2 info-waybill"
         >
-          Сумма:  <span class="font-weight-bold">
+          Общая сумма:  <span class="font-weight-bold">
             {{ totalPrice }}
           </span>
+        </b-col>
+      </b-row>
+      <b-row>
+        <b-col
+          cols="12"
+          class="text-dark pb-2 info-waybill text-right"
+        >
+          Доставка:
+          <template v-if="!order.deliveryPrice">
+            Бесплатно
+          </template>
+          <template v-else>
+            {{ order.deliveryPrice }}
+          </template>
         </b-col>
       </b-row>
       <div
@@ -54,7 +68,7 @@
     >
       {{ order.deliveryComment }}
     </div>
-    <template v-if="!checkStatus">
+    <template v-if="idStatusOfOrder !== 1">
       <div class="pb-3">
         <b-row align-h="around">
           <b-col cols="12">
@@ -75,7 +89,7 @@
       :key="item.id"
       :item="item"
       :order-id="order.id"
-      :status="checkStatus"
+      :status="idStatusOfOrder"
     />
     <!--</template>-->
     <b-modal
@@ -154,8 +168,8 @@
               <b-col cols="12">
                 <b-form-input
                   v-model="mixedSumCash"
-                  type="number"
-                  pattern="\d+(\.\d{2})?"
+                  type="text"
+                  pattern="\d+([\.,]\d{1,2})?"
                   placeholder="Введите сумму"
                 />
               </b-col>
@@ -167,8 +181,8 @@
               <b-col cols="12">
                 <b-form-input
                   v-model="mixedSumCard"
-                  type="number"
-                  pattern="\d+(\.\d{2})?"
+                  type="text"
+                  pattern="\d+([\.,]\d{1,2})?"
                   placeholder="Введите сумму"
                 />
               </b-col>
@@ -189,10 +203,10 @@
                 />
               </b-col>
             </b-row>
-            <b-row v-if="error || errorCertificate">
+            <b-row v-if="(error || errorCertificate)">
               <b-col cols="12">
                 <p
-                  v-if="error && !errorCertificate"
+                  v-if="(error && !errorCertificate)"
                   class="font-weight-bold text-danger text-center"
                 >
                   Не сходится сумма
@@ -288,6 +302,7 @@
         sumCard: 0,
         sumCertificate: 0,
         selected: null,
+        orderPaymentMethod: '',
         idStatusOfOrder: 0,
         nameStatusOfOrder: '',
         options: [
@@ -380,16 +395,21 @@
           //вызов ф-ии проверки на общую сумму смешанного способа оплаты
           this.checkMixedSum()
           //результат округляем до двух знаков после запятой
-          return this.sumCash.toFixed(2)
+          return this.sumCash
         },
         set: function (newValue) {
+          newValue = Number(String(newValue).replace( ",", ".").replace( /[A-Za-zА-Яа-яЁё]/g, "" ))
           //перед установлением значения проверяем, чтобы не было число больше общей суммы заказа
           if (newValue > this.totalPrice){
+            this.error = true
+          }else if(newValue < 0){
+            this.error = true
+          }else if((+(this.sumCertificate + this.sumCard + newValue).toFixed(10))>this.totalPrice){
             this.error = true
           }else{
             if (this.error)
               this.error = false
-            this.sumCash = Number(newValue)
+            this.sumCash = newValue
           }
         },
       },
@@ -399,14 +419,15 @@
           return this.sumCard
         },
         set: function (newValue) {
+          newValue = Number(String(newValue).replace( ",", ".").replace( /[A-Za-zА-Яа-яЁё]/g, "" ))
           //перед установлением значения проверяем, чтобы не было число больше общей суммы заказа
           if (newValue > this.totalPrice){
             this.error = true
           }else{
-            if (this.error){
-              this.error = false
-            }
-            this.sumCard = Number(newValue)
+            // if (this.error){
+            //   this.error = false
+            // }
+            this.sumCard = newValue
           }
         },
       },
@@ -472,15 +493,18 @@
                 }
               }
               if (sumOld !== sumNew)
-                totalPrice = (parseFloat(this.order.totalPrice) + (parseFloat(sumNew) - parseFloat(sumOld))).toFixed(2)
+                totalPrice = +(parseFloat(this.order.totalPrice) + (parseFloat(sumNew) - parseFloat(sumOld))).toFixed(10)
               else
                 totalPrice = this.order.totalPrice
             }
           }
         }
+        totalPrice = Number(totalPrice)
         if (totalPrice === 0)
-          totalPrice =  this.order.totalPrice
-        return Number(totalPrice)
+          totalPrice =  Number(this.order.totalPrice)
+        totalPrice = totalPrice + Number(this.order.deliveryPrice)
+
+        return Number(totalPrice.toFixed(2))
       },
       //номер путевки
       waibillId: function () {
@@ -495,7 +519,7 @@
       },
       //запрет смены способа оплаты если не наличный, не терминал и не смешанный
       disableSelect:function(){
-          if ((this.order.paymentMethod.id === 1 || this.order.paymentMethod.id === 2 || this.order.paymentMethod.id === 7) && !this.checkStatus) {
+          if (this.order.paymentMethod.id === 1 || this.order.paymentMethod.id === 2 || this.order.paymentMethod.id === 7) {
             return false
           }else
             return true
@@ -513,9 +537,9 @@
         if ((this.sumCertificate + this.sumCard + this.sumCash)>this.totalPrice)
           this.error = true
         // значения полей смешанного платежа не могут быть отрицательными
-        else if ((this.sumCertificate < 0)|| (this.sumCard < 0) || (this.sumCash < 0))
+        else if ((this.sumCertificate < 0)|| (this.sumCard < 0) || (this.sumCash < 0)){
           this.error = true
-        else
+        }else
           this.error = false
       },
       //получение данных о способе оплаты заказа
@@ -543,9 +567,13 @@
             }
           }
           //если не был установлен способ оплаты ранее
-          if (!setSelect)
+          if (!setSelect) {
             this.selected = this.order.paymentMethod.id
+          }
         }
+        if (!this.orderPaymentMethod)
+          this.orderPaymentMethod = this.selected
+
         //если в заказе изначально указан спешанный способ оплаты и данные не были еще установлены
         if (!this.sumCash && !this.sumCard && !this.sumCertificate && this.selected === 7 && this.order.mixedPayment){
           //наличные this.order.mixedPayment
@@ -559,52 +587,18 @@
       },
       //вычисление наличного способа оплаты для смешанного платежа
       getSumCash: function () {
-        (this.sumCertificate && this.sumCard) ? (this.sumCash = this.totalPrice - this.sumCertificate - this.sumCard) :
-          (this.sumCertificate ? (this.sumCash = this.totalPrice - this.sumCertificate):
-            (this.sumCard ? (this.sumCash = this.totalPrice - this.sumCard): this.sumCash = this.totalPrice))
+        (this.sumCertificate && this.sumCard) ? (this.sumCash = +(this.totalPrice - this.sumCertificate - this.sumCard).toFixed(10)) :
+          (this.sumCertificate ? (this.sumCash = +(this.totalPrice - this.sumCertificate).toFixed(10)):
+            (this.sumCard ? (this.sumCash = +(this.totalPrice - this.sumCard).toFixed(10)): this.sumCash = this.totalPrice))
       },
       //отправка заказа
       orderChanges: function () {
-        const {status, comment, totalPrice, sumCash, sumCard, sumCertificate} = this
+        const {status, comment, totalPrice, sumCertificate} = this
         let id = this.orderId
         let order = this.orderId
-        let paymentMethod = this.selected
-        //если статус доставлен
-        if (this.status === 1) {
-          //если в заказе изначально был смешанный способ оплаты, и он был изменен
-          if (this.order.paymentMethod.id === 7 && this.selected !== 7) {
-            //вызываем action из хранилища на удаление данных смешанного платежа
-            this.$store.dispatch(DELETE_MIXED_PAYMENTS, order)
-            //если в заказе изначально не было смешанног платежа, но произошло изменение на него
-          } else if (this.selected === 7) {
-              if ((this.order.mixedPayment && (this.order.mixedPayment.sumCash !== sumCash || this.order.mixedPayment.sumCard !== sumCard ||
-                this.order.mixedPayment.sumCertificate !== sumCertificate)) || !this.order.mixedPayment) {
-                // console.log(this.order.mixedPayment, ' ', sumCash, ' ', sumCard, ' ', sumCertificate)
-                  this.$store.dispatch(POST_MIXED_PAYMENTS, {order, sumCash, sumCard, sumCertificate})
-              }
-          }
-          // else if (this.order.paymentMethod.id !== 7 && this.selected === 7) {
-          //   // const {sumCash, sumCard, sumCertificate} = this
-          //   //вызываем action из хранилища на добавление данных смешанного платежа
-          //   this.$store.dispatch(POST_MIXED_PAYMENTS, {order, sumCash, sumCard, sumCertificate})
-          //   //если был смешанный платеж и остался
-          // } else if (this.selected === 7) {
-          //   // const {sumCash, sumCard, sumCertificate} = this
-          //   //вызываем action из хранилища на получение данных смешанного платежа по заказу
-          //   this.$store.dispatch(GET_MIXED_PAYMENTS, order).then( () => {
-          //     //если в хранилище есть массив с данными смещанного платежа и если данные различаются и введенными
-          //     if (this.mixedPayments && (this.mixedPayments.sumCash !== sumCash || this.mixedPayments.sumCard !== sumCard ||
-          //       this.mixedPayments.sumCertificate !== sumCertificate)) {
-          //       let data = {}
-          //       data.order = order
-          //       data.payment = {order, sumCash, sumCard, sumCertificate}
-          //       this.$store.dispatch(PATCH_MIXED_PAYMENTS, data)
-          //     }
-          //   }).catch ( () => {
-          //     //отправляем данные заказа
-          //     return this.$store.dispatch(POST_MIXED_PAYMENTS, {order, sumCash, sumCard, sumCertificate})
-          //   })
-          // }
+        let paymentMethod = ''
+        if (this.orderPaymentMethod !== this.selected){
+          paymentMethod = this.selected
         }
         //вызываем action на получение данных заказа
         this.$store.dispatch(GET_ORDER, order).then( () => {
@@ -617,16 +611,30 @@
           if (error !== 'PATCH_ERROR')
           //отправляем данные заказа
             return this.$store.dispatch(POST_ORDER, {id, status, comment, totalPrice, paymentMethod})
-        }).then( () => {
-          if (this.responseServer){
-            //скрываем модальное окно
-            this.$refs.modalSend.hide()
-            //очищаем статус чтобы не влиял на модальное окно
-            this.status = 1
-            //открываем список заказов в путевки
-            this.$router.push('/orders/'+this.waibillId)
+        }).then(() => {
+          if (this.status === 1) {
+            //если в заказе изначально был смешанный способ оплаты, и он был изменен на другой
+            if (this.order.paymentMethod.id === 7 && this.selected !== 7) {
+              //вызываем action из хранилища на удаление данных смешанного платежа
+              this.$store.dispatch(DELETE_MIXED_PAYMENTS, order)
+              //если в заказе изначально не было смешанног платежа, но произошло изменение на него
+            } else if (this.selected === 7) {
+              let sumCash = Number(this.sumCash.toFixed(2))
+              let sumCard = Number(this.sumCard.toFixed(2))
+              this.$store.dispatch(POST_MIXED_PAYMENTS, {order, sumCash, sumCard, sumCertificate})
+            }
           }
         })
+        //скрываем модальное окно
+        this.$refs.modalSend.hide()
+        //очищаем статус чтобы не влиял на модальное окно
+        this.status = 1
+        this.$toast.success({
+          title:'Заказ',
+          message:'ОТПРАВЛЕН'
+        })
+        //открываем список заказов в путевки
+        this.$router.push('/orders/'+this.waibillId)
       },
     },
   }

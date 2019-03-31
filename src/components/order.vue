@@ -1,5 +1,10 @@
 <template>
-  <b-card :class="[(order.status.id < 3 || (order.status.id === 3 && order.status.shortname === 'C')) ? 'text-secondary':'','mb-2 order']">
+  <b-card
+    :class="[(order.status.id === 1 && order.status.shortname === 'P') ? 'text-secondary bg-light' :
+      ( (order.status.id === 2 && order.status.shortname === 'M') ? 'border-warning text-warning bg-light' :
+        ( (order.status.id === 3 && order.status.shortname === 'C') ? 'border-danger text-danger bg-light' :
+          'border-success' )),'mb-2 order ']"
+  >
     <router-link
       :to="{ name: 'OrderItems', params: { orderId: order.id , order: order }}"
     >
@@ -18,7 +23,12 @@
             <span class="font-weight-bold pr-1">
               Сумма:
             </span>
-            <span :class="[(order.status.id < 3 || (order.status.id === 3 && order.status.shortname === 'C')) ? 'text-secondary':'text-danger', 'font-weight-bold']">
+            <span
+              :class="[(order.status.id === 1 && order.status.shortname === 'P') ? 'text-secondary' :
+                ( (order.status.id === 2 && order.status.shortname === 'M') ? 'text-warning' :
+                  ( (order.status.id === 3 && order.status.shortname === 'C') ? 'text-danger' :
+                    'text-danger' )),'font-weight-bold']"
+            >
               {{ totalPrice }}
             </span>
           </b-row>
@@ -37,7 +47,10 @@
             >
               <a
                 :href="'tel:' + phonePayer"
-                :class="[(order.status.id < 3 || (order.status.id === 3 && order.status.shortname === 'C')) ? 'text-secondary':'text-primary', 'font-weight-bold']"
+                :class="[(order.status.id === 1 && order.status.shortname === 'P') ? 'text-secondary' :
+                  ( (order.status.id === 2 && order.status.shortname === 'M') ? 'text-warning' :
+                    ( (order.status.id === 3 && order.status.shortname === 'C') ? 'text-danger' :
+                      'text-primary' )),'font-weight-bold']"
               >
                 <v-icon
                   name="phone"
@@ -77,7 +90,7 @@
             </b-col>
             <b-col
               cols="6"
-              class="text-center p-0"
+              class="text-center font-weight-bold text-danger p-0"
             >
               <div>{{ order.deliveryTime.name }}</div>
               <div>{{ address }}</div>
@@ -91,46 +104,51 @@
 
 <script>
   import {mapGetters} from 'vuex'
+
   export default {
     name: 'Order',
     props: {
       // входной параметр - заказ
-      order:{
+      order: {
         type: Object,
-        default: function() {
+        default: function () {
           return {}
         },
       },
       //сумма заказа
-      price:{
+      price: {
         type: Number,
-        default: 0
+        default: 0,
       },
     },
     computed: {
       //слушаем в хранилище массив изменения заказов
       ...mapGetters(['ordersChange']),
       //сумма заказа
-      totalPrice: function() {
-        // console.log('q')
-        if (this.price === 0)
-          return this.order.totalPrice
-        else
-          return this.price
+      totalPrice: function () {
+        let tPrice = 0
+        if (this.price === 0) {
+          tPrice = this.order.totalPrice
+        } else {
+          tPrice = this.price
+        }
+        tPrice += this.order.deliveryPrice
+
+        return tPrice.toFixed(2)
       },
       //адрес доставки
       address: function () {
-        let rezult=''
+        let rezult = ''
         //если самовывоз
         if (this.order.deliveryMethod.id === 2) {
           (this.order.deliveryCity.name === undefined || this.order.deliveryCity.name === null) ? '' : (rezult += this.order.deliveryCity.name),
-            (this.order.selfserviceMethod.address === undefined || this.order.selfserviceMethod.address === null) ? '' : (rezult += ", "+this.order.selfserviceMethod.address)
-        //иначе доставка курьером
+            (this.order.selfserviceMethod.address === undefined || this.order.selfserviceMethod.address === null) ? '' : (rezult += ', ' + this.order.selfserviceMethod.address)
+          //иначе доставка курьером
         } else {
           (this.order.deliveryCity.name === undefined || this.order.deliveryCity.name === null) ? '' : (rezult += this.order.deliveryCity.name),
-            (this.order.deliveryStreet === undefined || this.order.deliveryStreet === null) ? '' : (rezult += ", "+this.order.deliveryStreet),
-            (this.order.deliveryHouse === undefined || this.order.deliveryHouse === null) ? '' : (rezult += ", "+this.order.deliveryHouse),
-            (this.order.deliveryApartment === undefined || this.order.deliveryApartment === null) ? '' : (rezult += ", "+this.order.deliveryApartment)
+            (this.order.deliveryStreet === undefined || this.order.deliveryStreet === null) ? '' : (rezult += ', ' + this.order.deliveryStreet),
+            (this.order.deliveryHouse === undefined || this.order.deliveryHouse === null) ? '' : (rezult += ', ' + this.order.deliveryHouse),
+            (this.order.deliveryApartment === undefined || this.order.deliveryApartment === null) ? '' : (rezult += ', ' + this.order.deliveryApartment)
         }
         return rezult
       },
@@ -138,13 +156,13 @@
       phonePayer: function () {
         let r = /([0-9])+/g, arr = this.order.payerTelephone.match(r), res, str = arr.join('')
         if (this.order.payerTelephone.substr(0, 1) === '+') {
-          res = "+" + str;
+          res = '+' + str
         } else if (str.substr(0, 1) === '8') {
-          res = "+7" + str.substr(1);
-        }  else if (str.substr(0, 1) === '7') {
-          res = "+" + str;
+          res = '+7' + str.substr(1)
+        } else if (str.substr(0, 1) === '7') {
+          res = '+' + str
         } else {
-          res = str;
+          res = str
         }
         return res
       },
@@ -153,11 +171,12 @@
 </script>
 
 <style scoped>
-  .order a,.order a:hover {
+  .order a, .order a:hover {
     text-decoration: none;
     color: unset;
   }
-  .orders-item{
+
+  .orders-item {
     font-size: 14px;
   }
 </style>

@@ -5,8 +5,8 @@ import Login from '../components/login.vue'
 import Setting from '../components/setting.vue'
 import Orders from '../components/orders.vue'
 import OrderItems from '../components/order-items.vue'
-import { GET_WAYBILLS } from '../store/actions/waybills.js'
-import { GET_ORDERS } from '../store/actions/orders.js'
+import {GET_WAYBILLS} from '../store/actions/waybills.js'
+import {GET_ORDERS} from '../store/actions/orders.js'
 import store from '../store/store.js'
 
 Vue.use(Router)
@@ -24,10 +24,11 @@ const ifNotAuthenticated = (to, from, next) => {
 
 //проверка авторизирован ли пользователь
 const ifAuthenticated = (to, from, next) => {
+
   //если авторизирован
   if (store.getters.isAuthenticated) {
     //если существует адрес сервера и массив путевок пуст
-    if ((store.getters.urlServer !=='') && (store.getters.waybills==='')) {
+    if ((store.getters.urlServer !== '') && (store.getters.waybills === '')) {
       //вызываем action на получение путевых листов
       store.dispatch(GET_WAYBILLS)
       store.dispatch(GET_ORDERS)
@@ -66,15 +67,18 @@ export default new Router({
       path: '/orders/:waybillId',
       name: 'Orders',
       component: Orders,
-      props: (route) => ({ waybillId: Number(route.params.waybillId) }),
+      props: (route) => ({waybillId: Number(route.params.waybillId)}),
       beforeEnter: ifAuthenticated,
     },
     {
       path: '/order-items/:orderId',
       name: 'OrderItems',
       component: OrderItems,
-      props: (route) => ({ orderId: Number(route.params.orderId), orderData: route.params.order }),
+      props: (route) => ({orderId: Number(route.params.orderId), orderData: route.params.order}),
       beforeEnter: ifAuthenticated,
     },
   ],
+  scrollBehavior (to, from, savedPosition) {
+    return { x: 0, y: 0 }
+  }
 })

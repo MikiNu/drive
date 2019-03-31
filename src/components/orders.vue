@@ -1,7 +1,7 @@
 <template>
   <div v-if="waybill">
     <b-alert
-      :variant="waybill.isCompleted ? 'success' : 'primary'"
+      :variant="waybill.isCompleted ? 'success' : (waybill.shift === 'пункт выдачи' ? 'danger' : 'primary' )"
       show
     >
       <p class="text-center">
@@ -10,7 +10,10 @@
       <b-row>
         <b-col cols="6">
           <p class="mb-0">
-            Заказов: {{ waybill.orders.length }}
+            <template v-if="waybill.shift !== 'пункт выдачи'">
+              Активных: {{ waybill.orders.length - countCloseOrders }}
+            </template>
+            Всего: {{ waybill.orders.length }}
           </p>
         </b-col>
         <b-col
@@ -20,7 +23,7 @@
           <template v-if="waybill.isCompleted">
             Статус: закрыта
           </template>
-          <template v-else>
+          <template v-if="waybill.shift !== 'пункт выдачи' && !waybill.isCompleted">
             <b-btn
               v-b-modal.finish
               variant="success"
@@ -94,9 +97,9 @@
         <b-form-group label="Сумма наличными:">
           <b-form-input
             v-model="sumCashEnterDriver"
-            type="number"
-            pattern="\d+(\.\d{2})?"
             required
+            type="text"
+            pattern="\d+([\.,]\d{1,2})?"
             placeholder="Введите сумму наличных"
           />
         </b-form-group>
@@ -149,7 +152,7 @@
     //search-поле для поиска по id заказа, mileage-км, quantityOfExtraDelivery-кол-во довозов, quantityOutOfCity-кол-во межгорода
     //comment-комментарий, sumCashEnterDriver-сумма наличных, selected-выбранный статус заказа, options-статусы заказов
     // массив ordersTotalPriceNew[номер_заказа]=сумма заказа для передачи в компонент
-    data() {
+    data () {
       return {
         search: '',
         mileage: '',
@@ -157,6 +160,7 @@
         quantityOutOfCity: '',
         comment: '',
         sumCashEnterDriver: '',
+        countCloseOrders: 0,
         selected: 0,
         options: [
           {value: 0, text: 'Все статусы'},
@@ -164,46 +168,49 @@
           {value: 2, text: 'Перенесен'},
           {value: 3, text: 'Отменён'},
         ],
-        ordersTotalPriceNew: []
+        ordersTotalPriceNew: [],
       }
     },
     computed: {
       //слушаем массив путевых листов и массив изменений заказов в хранилище
       ...mapGetters(['waybills', 'ordersChange']),
-      orders: function() {
+      orders: function () {
         //sumOld-старая сумма по измененным товарам, sumNew-новая сумма по измененным товарам, totalPrice-сумма заказа
         let sumOld, sumNew, totalPrice
         //если в хранилище существует массив с изменениями
-        if (this.ordersChange){
+        if (this.ordersChange) {
           for (let i = 0; i < this.ordersChange.length; i++) {
             for (let j = 0; j < this.waybill.orders.length; j++) {
               //если в хранилище в массиве измененных заказов есть заказ из нашей путевки
               if (this.ordersChange[i].id === this.waybill.orders[j].id) {
-                sumOld=sumNew=totalPrice=0
+                sumOld = sumNew = totalPrice = 0
                 for (let n = 0; n < this.ordersChange[i].orderElement.length; n++) {
                   for (let m = 0; m < this.waybill.orders[j].orderElement.length; m++) {
                     //если нашли измененные позиции заказа
                     if (this.ordersChange[i].orderElement[n].element.id === this.waybill.orders[j].orderElement[m].element.id) {
                       //если изначально в заказе были изменения кол-ва
-                      if(this.waybill.orders[j].orderElement[m].amountDiff) {
-                        sumOld = parseFloat(sumOld) + parseFloat(this.waybill.orders[j].orderElement[m].price) * (parseFloat(this.waybill.orders[j].orderElement[m].amount)+parseFloat(this.waybill.orders[j].orderElement[m].amountDiff))
-                      }else
+                      if (this.waybill.orders[j].orderElement[m].amountDiff) {
+                        sumOld = parseFloat(sumOld) + parseFloat(this.waybill.orders[j].orderElement[m].price) * (parseFloat(this.waybill.orders[j].orderElement[m].amount) + parseFloat(this.waybill.orders[j].orderElement[m].amountDiff))
+                      } else {
                         sumOld = parseFloat(sumOld) + parseFloat(this.waybill.orders[j].orderElement[m].price) * parseFloat(this.waybill.orders[j].orderElement[m].amount)
+                      }
                       sumNew = parseFloat(sumNew) + parseFloat(this.ordersChange[i].orderElement[n].price) * parseFloat(this.ordersChange[i].orderElement[n].amount)
                     }
                   }
                 }
-                if (sumOld !== sumNew)
-                  totalPrice =  (parseFloat(this.waybill.orders[j].totalPrice) + (parseFloat(sumNew) - parseFloat(sumOld))).toFixed(2)
-                else
-                  totalPrice =  this.waybill.orders[j].totalPrice
-                this.setOrdersTotalPriceNew( this.waybill.orders[j].id, totalPrice)
+                if (sumOld !== sumNew) {
+                  totalPrice = (parseFloat(this.waybill.orders[j].totalPrice) + (parseFloat(sumNew) - parseFloat(sumOld))).toFixed(2)
+                } else {
+                  totalPrice = this.waybill.orders[j].totalPrice
+                }
+                this.setOrdersTotalPriceNew(this.waybill.orders[j].id, totalPrice)
               }
             }
           }
         }
         //т.к. функция имеет свой this и не будет иначе видеть глобальные объекты
         let that = this
+        let count = 0
         let ordersList = this.waybill.orders.map(function(order) {
           //если в хранилище есть массив с изменением заказов
           if (that.ordersChange) {
@@ -212,35 +219,46 @@
               if (order.id === that.ordersChange[i].id) {
                 let newOrder
                 //если в измененном массиве есть статус
-                  if (that.ordersChange[i].status)
+                  if (that.ordersChange[i].status) {
                     //вызываем функцию на изменения параметра
-                    newOrder =  that.setParamInOrders(order, 'status', that.ordersChange[i].status)
+                    newOrder = that.setParamInOrders(order, 'status', that.ordersChange[i].status)
+                    if (that.ordersChange[i].status.id === 1){
+                      count++
+                    }
+                  }
                 //если в измененном массиве есть способ оплаты
-                  if (that.ordersChange[i].paymentMethod)
-                    newOrder =  that.setParamInOrders(order, 'paymentMethod',  that.ordersChange[i].paymentMethod)
-                  if (newOrder)
-                    return newOrder
-                  else
-                    return order
+                if (that.ordersChange[i].paymentMethod) {
+                  newOrder = that.setParamInOrders(order, 'paymentMethod', that.ordersChange[i].paymentMethod)
+                }
+                if (newOrder) {
+                  return newOrder
+                } else {
+                  return order
+                }
               }
             }
             return order
-          }else
+          } else {
             return order
+          }
         })
+        // console.log(count)
+        that.setCountCloseOrders(count)
         //если выбран статус заказа
-        if (this.selected !== 0){
+        if (this.selected !== 0) {
           //если есть в хранилище массив с измененными заказами
           if (this.ordersChange) {
             //возвращаем массив с фильтров по статусу и id заказа
             return ordersList
               .filter(order => (order.status.id === this.selected) && String(order.id).indexOf(this.search) !== -1)
             //иначе ничего не возвращаем
-          }else
+          } else {
             return 0
+          }
           //если статус заказа не выбран, то оставляем только фильтр по id(из поиска)
-        }else
+        } else {
           return (ordersList.sort(this.sortOfActualOrder)).filter(order => String(order.id).indexOf(this.search) !== -1)
+        }
       },
       //возвращает массив с данными конкретной путевки(c входным id)
       waybill: function () {
@@ -253,29 +271,38 @@
       },
     },
     methods: {
+      setCountCloseOrders: function(count){
+        this.countCloseOrders = count
+      },
       //метод для сортировки заказов по статусам, чтобы актуальные были вверху списка
-      sortOfActualOrder: function (order1, order2){
-        if (order1.status.id < order2.status.id)
+      sortOfActualOrder: function (order1, order2) {
+        if (order1.status.id < order2.status.id) {
           return 1
-        if (order1.status.id > order2.status.id)
+        }
+        if (order1.status.id > order2.status.id) {
           return -1
+        }
       },
       //метод устанавливает новые значения(value) в массиве order, для поля nameParam
       //return массив заказа
-      setParamInOrders: function(order, nameParam, value){
-        if (nameParam === 'status')
-         order.status = value
-        if (nameParam === 'paymentMethod')
+      setParamInOrders: function (order, nameParam, value) {
+        if (nameParam === 'status') {
+          order.status = value
+        }
+        if (nameParam === 'paymentMethod') {
           order.paymentMethod = value
-        if (nameParam === 'mixedPayment')
+        }
+        if (nameParam === 'mixedPayment') {
           order.mixedPayment = value
+        }
         return order
       },
       //закрытие путевки
-      sendFinish: function(){
+      sendFinish: function () {
         //формируем данные для отправки на сервер
         const {mileage, quantityOfExtraDelivery, quantityOutOfCity, comment} = this
-        let sumCash = this.sumCashEnterDriver
+
+        let sumCash =  Number(String(this.sumCashEnterDriver).replace( ",", ".").replace( /[A-Za-zА-Яа-яЁё]/g, "" ))
         //параметр закрытия
         let isCompleted = true
         let data = {}
@@ -285,12 +312,18 @@
         this.$store.dispatch(PATCH_WAYBILLS, data)
         //скрываем модальное окно
         this.$refs.modalFinish.hide()
+        //очищаем статус чтобы не влиял на модальное окно
+        this.status = 1
+        this.$toast.success({
+          title:'Путёвка',
+          message:'ОТПРАВЛЕНА'
+        })
         //открываем список путевок
         this.$router.push('/')
       },
       //добавление в массив ordersTotalPriceNew поля orderId и соответствующего ему значения totalPrice
       setOrdersTotalPriceNew: function (orderId, totalPrice) {
-       this.ordersTotalPriceNew[Number(orderId)] = Number(totalPrice)
+        this.ordersTotalPriceNew[Number(orderId)] = Number(totalPrice)
       }
     },
   }

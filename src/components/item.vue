@@ -21,7 +21,7 @@
               cols="8"
               class="text-right"
             >
-              <template v-if="!status">
+              <template v-if="status !== 1">
                 <a
                   :id="item.id"
                   v-b-modal="'change-'+item.id"
@@ -173,25 +173,25 @@
     name: 'Item',
     props: {
       //входные параметры из родителя-данные о позиции товара
-      item:{
+      item: {
         type: Object,
-        default: function() {
+        default: function () {
           return {}
         },
       },
       //id заказа
-     orderId:{
+      orderId: {
         type: Number,
         default: 0,
       },
       //статус заказа
-      status:{
-        type: Boolean,
-        default: false,
+      status: {
+        type: Number,
+        default: 0,
       },
     },
     //переменные для редактирования товара
-    data() {
+    data () {
       return {
         priceChange: false,
         amountChange: false,
@@ -203,61 +203,63 @@
       //слушаем массив с элементами в хранилище
       ...mapGetters(['elements']),
       //изменение товара
-      itemChanges:function(){
+      itemChanges: function () {
         this.setPriceValue()
         this.setAmountValue()
         if (this.item.itemChange) {
-          if (this.item.itemChange === "price") {
+          if (this.item.itemChange === 'price') {
             this.changePrice(true)
             this.changeAmount(false)
-          }else if (this.item.itemChange === "amount") {
+          } else if (this.item.itemChange === 'amount') {
             this.changeAmount(true)
             this.changePrice(false)
-          }else if (this.item.itemChange === "all") {
+          } else if (this.item.itemChange === 'all') {
             this.changePrice(true)
             this.changeAmount(true)
-          }else{
+          } else {
             this.changePrice(false)
             this.changeAmount(false)
           }
           return true
-        }else{
+        } else {
           this.changePrice(false)
           this.changeAmount(false)
           return false
         }
       },
       // проверка полей цены и кол-во позиции товара на существование и отрицательное значение
-      checkPriceAndAmount:function(){
-        if (!this.item.price || ( this.item.price < 0 ) || ( this.item.amount < 0 ) ) {
+      checkPriceAndAmount: function () {
+        if (!this.item.price || (this.item.price < 0) || (this.item.amount < 0)) {
           return true
-        }else
+        } else {
           return false
+        }
       },
       //проверка редактируемых полей у товара
-      checkPriceAndAmountEdit:function(){
-        if (!this.priceValue || (!this.amountValue && this.amountValue!==0) || ( this.priceValue < 0 ) || ( this.amountValue < 0 ) ) {
+      checkPriceAndAmountEdit: function () {
+        if (!this.priceValue || (!this.amountValue && this.amountValue !== 0) || (this.priceValue < 0) || (this.amountValue < 0)) {
           return true
-        }else
+        } else {
           return false
+        }
       },
     },
     methods: {
       //при закрытии модального окна устанавливаем старые значения
       onHidden () {
-        this.priceValue=this.item.price
-        this.amountValue=this.item.amount
+        this.priceValue = this.item.price
+        this.amountValue = this.item.amount
       },
       //сохранение изменения данных позиции товара
       saveChangeItem: function () {
         //определяем данные для отправки
         let price = Number(this.priceValue)
         let amount = Number(this.amountValue)
-        let order =  Number(this.orderId)
-        let element =  Number(this.item.element.id)
-        let id =""
+        let order = Number(this.orderId)
+        let element = Number(this.item.element.id)
+        let id = ''
         //проверяем были ли изменения цены и кол-ва товара
-        if ((price !== this.item.price) || (amount !== this.item.amount)){
+        if ((price !== this.item.price) || (amount !== this.item.amount)) {
           //вызов action из хранилища на получение изменений по заказу
           this.$store.dispatch(GET_ORDERS_ELEMENT, order).then(() => {
             let data = {}
@@ -288,30 +290,31 @@
         this.$refs.modalChangeItem.hide()
       },
       //изменения кол-ва
-      changeAmount: function(value){
+      changeAmount: function (value) {
         this.amountChange = value
       },
       //изменения цены
-      changePrice: function(value){
+      changePrice: function (value) {
         this.priceChange = value
       },
       //установка изменяемым данным начальных значений
-      setPriceValue: function(){
-        this.priceValue=this.item.price
+      setPriceValue: function () {
+        this.priceValue = this.item.price
       },
-      setAmountValue: function(){
-        this.amountValue=this.item.amount
-      }
+      setAmountValue: function () {
+        this.amountValue = this.item.amount
+      },
     },
   }
 
 </script>
 
 <style scoped>
-  .item{
+  .item {
     font-size: 14px;
   }
-  .order a,.order a:hover {
+
+  .order a, .order a:hover {
     text-decoration: none;
     color: unset;
   }

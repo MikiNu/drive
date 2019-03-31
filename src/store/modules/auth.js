@@ -4,9 +4,11 @@ import {
   AUTH_SUCCESS,
   AUTH_LOGOUT,
 } from '../actions/auth.js'
-import {GET_DRIVER, GET_WAYBILLS} from '../actions/waybills.js'
+import {GET_DRIVER,
+  //GET_WAYBILLS
+} from '../actions/waybills.js'
 import Vue from 'vue'
-import {SET_RESPONSE_SERVER} from "../actions/response-server";
+import {SET_RESPONSE_SERVER} from '../actions/response-server'
 
 // инициализируем состояние
 const state = {
@@ -24,13 +26,13 @@ const actions = {
   [AUTH_REQUEST]: ({
                      commit,
                      dispatch,
-                     rootGetters
+                     rootGetters,
                    }, data) => {
     return new Promise((resolve, reject) => {
       //вызываем мутацию-статус закрузки
       commit(AUTH_REQUEST)
       //делаем запрос авторизации на сервер
-      Vue.http.post(rootGetters.urlServer+'login', {...data}).then(response => {
+      Vue.http.post(rootGetters.urlServer + 'login', {...data}).then(response => {
         //устанавливаем полученный данных в localStorage
         localStorage.setItem('data', JSON.stringify(response.body))
         //изменение глобального заголовка для HTTP-запросов
@@ -40,7 +42,7 @@ const actions = {
         //вызываем action по установлению ФИО водителя в состояние хранилища
         dispatch(GET_DRIVER, response.body.user.fullname)
         //вызываем action на получение массива путевок в хранилище
-        dispatch(GET_WAYBILLS)
+        // dispatch(GET_WAYBILLS)
         dispatch(SET_RESPONSE_SERVER, true)
         resolve(response.body)
       }, response => {

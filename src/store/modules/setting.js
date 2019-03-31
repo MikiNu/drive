@@ -1,10 +1,7 @@
-import {
-  SET_SAVE, SETTING,
-} from '../actions/setting.js'
-
+import {SET_SAVE, SETTING} from '../actions/setting.js'
 
 const state = {
-  urlServer: localStorage.getItem('urlServer') || '',
+  urlServer: localStorage.getItem('urlServer') || 'https://drive-api.irmag.ru/',
   isSetting: false,
 }
 
@@ -17,9 +14,7 @@ const actions = {
                  commit,
                }, data) => {
     return new Promise((resolve) => {
-      // вызываем мутацию изменения значения в хранилище
       commit(SET_SAVE, data)
-      //устанавливаем куку
       localStorage.setItem('urlServer', data)
       resolve()
     })

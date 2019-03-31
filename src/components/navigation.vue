@@ -100,7 +100,7 @@
 <script>
   import {mapGetters} from 'vuex'
   import {AUTH_LOGOUT} from '../store/actions/auth.js'
-  import { Slide } from 'vue-burger-menu'
+  import {Slide} from 'vue-burger-menu'
   // import Sidebar from './sidebar.vue'
   import Waybill from './waybill.vue'
 
@@ -111,7 +111,7 @@
       //боковое меню
       // Sidebar,
       Slide,
-      Waybill
+      Waybill,
     },
     computed: {
       //слушаем состояния: isAuthenticated-авторизирован ли пользователь, isSetting-открыты ли настройки
@@ -135,10 +135,12 @@
     width: 0;
     z-index: 1000;
   }
+
   .bm-burger-button {
     left: 10px;
     top: -7px;
   }
+
   .bm-burger-bars {
     background-color: #007bff
   }

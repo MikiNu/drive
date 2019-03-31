@@ -1,0 +1,50 @@
+stages:
+  - test
+  - test_failure
+  - deploy
+  - deploy_failure
+
+test:
+  stage: test
+  script:
+    - make yarn-install
+    - make lint
+    - echo 'test is missing ... plz write tests!'
+
+on_test_failure:
+  stage: test_failure
+  script:
+    - MSG="✘ {$CI_JOB_ID} $CI_PROJECT_NAME/$CI_ENVIRONMENT_NAME test failure." make notify-devops
+  when: on_failure
+
+deploy_beta:
+  stage: deploy
+  environment:
+    name: beta
+    url: https://drive.beta.irmag.ru
+  script:
+    - echo "Deploy to IRMAG Beta"
+    - make yarn-install
+    - make build@dev
+    - make deploy@beta
+    - MSG="✔ {$CI_JOB_ID} Deploy $CI_PROJECT_NAME/$CI_ENVIRONMENT_NAME is done. https://gitlab.irmag.ru/php/irmag-drive-frontend/-/jobs/$CI_JOB_ID" make notify-devops
+  when: manual
+
+deploy_prod:
+  stage: deploy
+  environment:
+    name: prod
+    url: https://drive.irmag.ru
+  script:
+    - echo "Deploy to IRMAG Prod"
+    - make yarn-install
+    - make build@prod
+    - make deploy@prod
+    - MSG="✔ {$CI_JOB_ID} Deploy $CI_PROJECT_NAME/$CI_ENVIRONMENT_NAME is done. https://gitlab.irmag.ru/php/irmag-drive-frontend/-/jobs/$CI_JOB_ID" make notify-devops
+  when: manual
+
+on_deploy_failure:
+  stage: deploy_failure
+  script:
+    - MSG="✘ {$CI_JOB_ID} $CI_PROJECT_NAME/$CI_ENVIRONMENT_NAME deploy failure." make notify-devops
+  when: on_failure
